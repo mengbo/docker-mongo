@@ -1,0 +1,22 @@
+#!/bin/sh
+
+source .env
+
+mkdir -p scripts
+
+cat > ./scripts/add-admin-user.js << EOF
+db.createUser({ user: '${MONGO_ADMIN}', pwd: '${MONGO_ADMIN_PASSWORD}',
+roles: [ { role: "userAdminAnyDatabase", db: "admin" } ] });
+EOF
+
+docker exec -i mongo mongo admin --eval \
+	"load('/data/db/scripts/add-admin-user.js')"
+
+cat > ./scripts/add-db-user.js << EOF
+db.createUser({ user: '${MONGO_USER}', pwd: '${MONGO_PASSWORD}',
+  roles: [ { role: "readWrite", db: "${MONGO_DATABASE}" } ] });
+EOF
+
+docker exec -i mongo mongo -u "${MONGO_ADMIN}" -p "${MONGO_ADMIN_PASSWORD}" \
+	--authenticationDatabase admin "${MONGO_DATABASE}" --eval \
+	"load('/data/db/scripts/add-db-user.js')"

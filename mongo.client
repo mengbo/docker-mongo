@@ -1,0 +1,67 @@
+#!/bin/bash
+
+source .env
+
+bash() {
+	echo "Run bash in the mongo container:"
+	echo
+	docker exec -it mongo bash
+}
+
+noauth() {
+	if [ "${1}x" = "x" ]; then
+		db=test
+	else
+		db=$1
+	fi
+	echo "Connect to Mongo database \"${db}\" without authentication:"
+	echo
+	docker exec -it mongo mongo "${db}"
+}
+
+auth_admin() {
+	echo "Connect to Mongo database \"admin\" with user \"${MONGO_ADMIN}\":"
+	echo
+	docker exec -it mongo mongo -u "${MONGO_ADMIN}" -p "${MONGO_ADMIN_PASSWORD}" admin
+}
+
+auth_user() {
+	echo "Connect to Mongo database \"${MONGO_DATABASE}\" with user \"${MONGO_USER}\":"
+	echo
+	docker exec -it mongo mongo \
+		-u "${MONGO_USER}" -p "${MONGO_PASSWORD}" "${MONGO_DATABASE}"
+}
+
+admin() {
+	if [ "${MONGO_AUTH}x" = "1x" ]; then
+		auth_admin
+	else
+		noauth admin
+	fi
+}
+
+user() {
+	if [ "${MONGO_AUTH}x" = "1x" ]; then
+		auth_user
+	else
+		noauth "${MONGO_DATABASE}"
+	fi
+}
+
+case "$1" in
+	bash)
+		bash
+		;;
+	noauth)
+		noauth
+		;;
+	admin)
+		admin
+		;;
+	user)
+		user
+		;;
+	*)
+		user
+		exit 1
+esac

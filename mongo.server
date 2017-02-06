@@ -1,0 +1,63 @@
+#!/bin/bash
+
+source .env
+
+init() {
+	if [ "${MONGO_AUTH}x" = "1x" ]; then
+		auth="--auth"
+	fi
+	docker run --name mongo \
+		-p 127.0.0.1:27017:27017 \
+		-v "${PWD}"/datadir:/data/db \
+		-v "${PWD}"/scripts:/data/db/scripts \
+		-d mongo ${auth}
+	docker ps -a -q -f name=mongo --format "{{.Status}}"
+	if [ "${MONGO_AUTH}x" = "1x" ]; then
+		sleep 2 && ./mongo.adduser
+	fi
+}
+	
+
+start() {
+	docker start mongo
+	docker ps -a -q -f name=mongo --format "{{.Status}}"
+}
+
+stop() {
+	docker stop mongo
+	docker ps -a -q -f name=mongo --format "{{.Status}}"
+}
+
+status() {
+	docker ps -a -q -f name=mongo --format "{{.Names}}\n{{.Status}}"
+}
+
+clean() {
+	echo -n "Remove the docker image and the datadir, Are you sure? [y/N]: "
+	read -r REPLY
+	if echo "$REPLY" | grep -iq "^y" ;then
+		docker stop mongo
+		docker rm mongo && rm -rf ./datadir ./scripts
+	fi
+}
+
+case "$1" in
+	init)
+		init
+		;;
+	start)
+		start
+		;;
+	stop) 
+		stop
+		;;
+	status) 
+		status
+		;;
+	clean)
+		clean
+		;;
+	*)
+		echo $"Usage: $0 {init|start|stop|status|clean}"
+		exit 1
+esac
